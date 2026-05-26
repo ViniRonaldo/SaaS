@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 142 40% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 142 40% 10%;
+    --primary: 142 64% 32%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 142 20% 95%;
+    --secondary-foreground: 142 40% 15%;
+    --muted: 142 10% 96%;
+    --muted-foreground: 142 10% 45%;
+    --accent: 142 20% 93%;
+    --accent-foreground: 142 40% 15%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 142 10% 90%;
+    --input: 142 10% 90%;
+    --ring: 142 64% 32%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 142 30% 5%;
+    --foreground: 142 5% 95%;
+    --card: 142 25% 8%;
+    --card-foreground: 142 5% 95%;
+    --primary: 142 64% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 142 20% 12%;
+    --secondary-foreground: 142 5% 90%;
+    --muted: 142 15% 15%;
+    --muted-foreground: 142 5% 60%;
+    --accent: 142 15% 15%;
+    --accent-foreground: 142 5% 90%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 142 15% 18%;
+    --input: 142 15% 18%;
+    --ring: 142 64% 42%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .elderly-mode {
+    font-size: 1.25rem !important;
+    line-height: 1.8 !important;
+  }
+
+  .elderly-mode button,
+  .elderly-mode a {
+    min-height: 56px !important;
+    font-size: 1.125rem !important;
+    padding: 12px 24px !important;
+  }
+
+  .high-contrast {
+    --primary: 142 100% 25%;
+    --foreground: 0 0% 0%;
+    --background: 0 0% 100%;
+    --muted-foreground: 0 0% 20%;
+  }
+}

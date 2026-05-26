@@ -1,0 +1,375 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// AUTH & USERS
+// ============================================
+
+enum Role {
+  PATIENT
+  RECEPTIONIST
+  DOCTOR
+  NURSE
+  ADMIN
+  PREFECTURE
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  cpf           String    @unique
+  phone         String
+  role          Role      @default(PATIENT)
+  avatar        String?
+  isActive      Boolean   @default(true)
+  healthUnitId  String?
+  refreshToken  String?
+  resetToken    String?
+  resetTokenExp DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  healthUnit    HealthUnit?    @relation(fields: [healthUnitId], references: [id])
+  patient       Patient?
+  notifications Notification[]
+  logs          AuditLog[]
+  doctorAppointments Appointment[] @relation("DoctorAppointments")
+  doctorScheduleBlocks ScheduleBlock[]
+
+  @@map("users")
+}
+
+// ============================================
+// PATIENTS
+// ============================================
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  NOT_INFORMED
+}
+
+enum Priority {
+  NORMAL
+  ELDERLY
+  PREGNANT
+  DISABLED
+  EMERGENCY
+}
+
+model Patient {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  cns              String?   @unique
+  birthDate        DateTime
+  gender           Gender    @default(NOT_INFORMED)
+  bloodType        String?
+  allergies        String?
+  medications      String?
+  observations     String?
+  priority         Priority  @default(NORMAL)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Address
+  street           String?
+  addressNumber    String?
+  complement       String?
+  neighborhood     String?
+  city             String?
+  state            String?
+  zipCode          String?
+
+  // Emergency contact
+  emergencyName    String?
+  emergencyPhone   String?
+  emergencyRelation String?
+
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointments     Appointment[]
+  queueTickets     QueueTicket[]
+  medicalRecords   MedicalRecord[]
+  attachments      PatientAttachment[]
+
+  @@map("patients")
+}
+
+model PatientAttachment {
+  id        String   @id @default(cuid())
+  patientId String
+  fileName  String
+  fileUrl   String
+  fileType  String
+  fileSize  Int
+  createdAt DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("patient_attachments")
+}
+
+// ============================================
+// HEALTH UNITS
+// ============================================
+
+enum HealthUnitType {
+  UBS
+  HOSPITAL
+  CLINIC
+  UPA
+  SPECIALTY_CENTER
+}
+
+model HealthUnit {
+  id           String         @id @default(cuid())
+  name         String
+  type         HealthUnitType @default(UBS)
+  cnes         String         @unique
+  phone        String
+  email        String?
+  isActive     Boolean        @default(true)
+  specialties  String[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  // Address
+  street       String
+  addressNumber String
+  complement   String?
+  neighborhood String
+  city         String
+  state        String
+  zipCode      String
+
+  users           User[]
+  operatingHours  OperatingHours[]
+  queues          Queue[]
+  appointments    Appointment[]
+  scheduleBlocks  ScheduleBlock[]
+
+  @@map("health_units")
+}
+
+model OperatingHours {
+  id           String     @id @default(cuid())
+  healthUnitId String
+  dayOfWeek    Int
+  openTime     String
+  closeTime    String
+
+  healthUnit HealthUnit @relation(fields: [healthUnitId], references: [id], onDelete: Cascade)
+
+  @@unique([healthUnitId, dayOfWeek])
+  @@map("operating_hours")
+}
+
+// ============================================
+// QUEUES & TICKETS
+// ============================================
+
+enum TicketStatus {
+  WAITING
+  CALLED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Queue {
+  id            String   @id @default(cuid())
+  name          String
+  healthUnitId  String
+  specialty     String?
+  prefix        String   @default("A")
+  isActive      Boolean  @default(true)
+  currentNumber Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  healthUnit HealthUnit    @relation(fields: [healthUnitId], references: [id], onDelete: Cascade)
+  tickets    QueueTicket[]
+
+  @@map("queues")
+}
+
+model QueueTicket {
+  id               String       @id @default(cuid())
+  queueId          String
+  patientId        String?
+  ticketNumber     String
+  displayNumber    String
+  priority         Priority     @default(NORMAL)
+  status           TicketStatus @default(WAITING)
+  position         Int
+  estimatedWaitMin Int?
+  counter          String?
+  calledAt         DateTime?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  queue   Queue    @relation(fields: [queueId], references: [id], onDelete: Cascade)
+  patient Patient? @relation(fields: [patientId], references: [id])
+
+  @@index([queueId, status])
+  @@index([patientId])
+  @@map("queue_tickets")
+}
+
+// ============================================
+// APPOINTMENTS
+// ============================================
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  WAITING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum AppointmentType {
+  CONSULTATION
+  EXAM
+  VACCINE
+  RETURN
+}
+
+model Appointment {
+  id           String            @id @default(cuid())
+  patientId    String
+  doctorId     String
+  healthUnitId String
+  type         AppointmentType   @default(CONSULTATION)
+  status       AppointmentStatus @default(SCHEDULED)
+  specialty    String
+  date         DateTime
+  startTime    String
+  endTime      String
+  notes        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  patient    Patient    @relation(fields: [patientId], references: [id])
+  doctor     User       @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  healthUnit HealthUnit @relation(fields: [healthUnitId], references: [id])
+
+  @@index([patientId])
+  @@index([doctorId, date])
+  @@index([healthUnitId, date])
+  @@map("appointments")
+}
+
+model ScheduleBlock {
+  id           String   @id @default(cuid())
+  doctorId     String
+  healthUnitId String
+  date         DateTime
+  startTime    String
+  endTime      String
+  reason       String?
+  createdAt    DateTime @default(now())
+
+  doctor     User       @relation(fields: [doctorId], references: [id])
+  healthUnit HealthUnit @relation(fields: [healthUnitId], references: [id])
+
+  @@map("schedule_blocks")
+}
+
+// ============================================
+// MEDICAL RECORDS
+// ============================================
+
+model MedicalRecord {
+  id          String   @id @default(cuid())
+  patientId   String
+  doctorName  String
+  specialty   String
+  diagnosis   String?
+  prescription String?
+  notes       String?
+  attachments String[]
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@map("medical_records")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+enum NotificationType {
+  APPOINTMENT_REMINDER
+  APPOINTMENT_CONFIRMATION
+  QUEUE_POSITION
+  QUEUE_CALLED
+  DELAY_NOTICE
+  SATISFACTION_SURVEY
+  GENERAL
+}
+
+enum NotificationChannel {
+  APP
+  WHATSAPP
+  SMS
+  EMAIL
+}
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  type      NotificationType
+  channel   NotificationChannel @default(APP)
+  title     String
+  message   String
+  isRead    Boolean             @default(false)
+  metadata  Json?
+  sentAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// ============================================
+// AUDIT & LOGS
+// ============================================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entity     String
+  entityId   String?
+  oldData    Json?
+  newData    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
