@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Search, Plus, Eye } from 'lucide-react';
 import Link from 'next/link';
+import { patientService } from '@/services/patient.service';
 
 const priorityBadge: Record<string, { label: string; color: string }> = {
   NORMAL: { label: 'Normal', color: 'bg-gray-100 text-gray-700' },
@@ -17,7 +18,7 @@ export default function PacientesPage() {
   const [search, setSearch] = useState('');
 
   useEffect(()=>{
-    fetch('/api/v1/patients').then(r=>r.json()).then(d=>setPatients(d.data||[])).catch(()=>{}).finally(()=>setLoading(false));
+    patientService.getAll().then(d=>setPatients(d.data||[])).catch(()=>{}).finally(()=>setLoading(false));
   },[]);
 
   const filtered = patients.filter(p=>p.user?.name?.toLowerCase().includes(search.toLowerCase())||p.user?.cpf?.includes(search));

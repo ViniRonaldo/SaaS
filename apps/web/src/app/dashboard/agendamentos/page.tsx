@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { Plus, Search, Calendar, X, Trash2, CheckCircle, XCircle, Edit3 } from 'lucide-react';
 import { appointmentService, Appointment } from '@/services/appointment.service';
 import { patientService } from '@/services/patient.service';
+import { healthUnitService } from '@/services/health-unit.service';
+import { userService } from '@/services/user.service';
 
-const statusBadge = { SCHEDULED: 'bg-blue-100 text-blue-700', CONFIRMED: 'bg-green-100 text-green-700', COMPLETED: 'bg-gray-100 text-gray-600', CANCELLED: 'bg-red-100 text-red-600', NO_SHOW: 'bg-orange-100 text-orange-700' };
-const statusLabel = { SCHEDULED: 'Agendado', CONFIRMED: 'Confirmado', COMPLETED: 'Concluido', CANCELLED: 'Cancelado', NO_SHOW: 'Nao Compareceu' };
+const statusBadge: Record<string, string> = { SCHEDULED: 'bg-blue-100 text-blue-700', CONFIRMED: 'bg-green-100 text-green-700', COMPLETED: 'bg-gray-100 text-gray-600', CANCELLED: 'bg-red-100 text-red-600', NO_SHOW: 'bg-orange-100 text-orange-700' };
+const statusLabel: Record<string, string> = { SCHEDULED: 'Agendado', CONFIRMED: 'Confirmado', COMPLETED: 'Concluido', CANCELLED: 'Cancelado', NO_SHOW: 'Nao Compareceu' };
 const nextStatus: Record<string, string[]> = { SCHEDULED: ['CONFIRMED','CANCELLED'], CONFIRMED: ['COMPLETED','NO_SHOW','CANCELLED'], COMPLETED: [], NO_SHOW: [], CANCELLED: [] };
 const specialties = ['Clinica Geral','Pediatria','Cardiologia','Ginecologia','Ortopedia','Dermatologia','Oftalmologia','Psiquiatria'];
 const types = ['CONSULTATION','EXAM','VACCINE','RETURN'];
@@ -24,7 +26,7 @@ export default function AgendamentosPage() {
   const load = async () => { try { const r=await appointmentService.getAll(); setAppointments(r.data||[]); } catch(e){} finally{setLoading(false);} };
   useEffect(()=>{ load(); },[]);
 
-  const openModal = async () => { setShowModal(true); try { const [p,u] = await Promise.all([patientService.getAll(),fetch('/api/v1/health-units').then(r=>r.json())]); setPatients(p.data||[]); setUnits(u.data||[]); fetch('/api/v1/users?role=DOCTOR').then(r=>r.json()).then(d=>setDoctors(d.data||[])); } catch(e){} };
+  const openModal = async () => { setShowModal(true); try { const [p,u,d] = await Promise.all([patientService.getAll(),healthUnitService.getAll(),userService.getAll({ role: 'DOCTOR' })]); setPatients(p.data||[]); setUnits(u.data||[]); setDoctors(d.data||[]); } catch(e){} };
   const submit = async (e:React.FormEvent)=>{ e.preventDefault(); try{await appointmentService.create(form); setShowModal(false); setForm({patientId:'',doctorId:'',healthUnitId:'',type:'CONSULTATION',specialty:'Clinica Geral',date:'',startTime:'',endTime:'',notes:''}); load();}catch(e:any){alert(e.message);} };
   const del = async (id:string)=>{ if(!confirm('Cancelar?'))return; try{await appointmentService.delete(id); load();}catch(e:any){alert(e.message);} };
   const changeStatus = async (id:string, status:string)=>{ try{await appointmentService.update(id,{status}); load();}catch(e:any){alert(e.message);} };

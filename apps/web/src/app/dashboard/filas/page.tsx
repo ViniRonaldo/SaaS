@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Plus, Play, CheckCircle, XCircle, PhoneCall } from 'lucide-react';
+import { queueService } from '@/services/queue.service';
 
 const priorityBadge: Record<string, string> = { NORMAL: 'bg-gray-100 text-gray-700', ELDERLY: 'bg-orange-100 text-orange-700', PREGNANT: 'bg-pink-100 text-pink-700', DISABLED: 'bg-blue-100 text-blue-700', EMERGENCY: 'bg-red-100 text-red-700' };
 const statusBadge: Record<string, string> = { WAITING: 'bg-yellow-100 text-yellow-700', CALLED: 'bg-green-100 text-green-700', IN_PROGRESS: 'bg-blue-100 text-blue-700', COMPLETED: 'bg-gray-100 text-gray-500', CANCELLED: 'bg-red-100 text-red-500' };
@@ -13,16 +14,16 @@ export default function FilasPage() {
   const [selected, setSelected] = useState<string|null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadQueues = async () => { try { const r=await fetch('/api/v1/queues').then(r=>r.json()); setQueues(r.data||[]); if(r.data?.[0]) setSelected(r.data[0].id); } catch(e){} finally{setLoading(false);} };
-  const loadTickets = async (qid:string) => { if(!qid) return; try { const r=await fetch('/api/v1/queues/'+qid).then(r=>r.json()); setTickets(r.tickets||[]); } catch(e){} };
+  const loadQueues = async () => { try { const r=await queueService.getAll(); setQueues(r||[]); if(r?.[0]) setSelected(r[0].id); } catch(e){} finally{setLoading(false);} };
+  const loadTickets = async (qid:string) => { if(!qid) return; try { const r=await queueService.getById(qid); setTickets(r.tickets||[]); } catch(e){} };
 
   useEffect(()=>{ loadQueues(); },[]);
   useEffect(()=>{ if(selected) loadTickets(selected); },[selected]);
 
-  const callNext = async () => { if(!selected) return; try { await fetch('/api/v1/queues/'+selected+'/call-next',{method:'POST',headers:{'Content-Type':'application/json'}}); loadTickets(selected); } catch(e){} };
-  const start = async (tid:string) => { try { await fetch('/api/v1/queues/tickets/'+tid+'/start',{method:'PATCH'}); if(selected) loadTickets(selected); } catch(e){} };
-  const complete = async (tid:string) => { try { await fetch('/api/v1/queues/tickets/'+tid+'/complete',{method:'PATCH'}); if(selected) loadTickets(selected); } catch(e){} };
-  const cancel = async (tid:string) => { if(!confirm('Cancelar senha?'))return; try { await fetch('/api/v1/queues/tickets/'+tid+'/cancel',{method:'PATCH'}); if(selected) loadTickets(selected); } catch(e){} };
+  const callNext = async () => { if(!selected) return; try { await queueService.callNext(selected); loadTickets(selected); } catch(e){} };
+  const start = async (tid:string) => { try { await queueService.start(tid); if(selected) loadTickets(selected); } catch(e){} };
+  const complete = async (tid:string) => { try { await queueService.complete(tid); if(selected) loadTickets(selected); } catch(e){} };
+  const cancel = async (tid:string) => { if(!confirm('Cancelar senha?'))return; try { await queueService.cancel(tid); if(selected) loadTickets(selected); } catch(e){} };
 
   if(loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-600 border-t-transparent"/></div>;
 

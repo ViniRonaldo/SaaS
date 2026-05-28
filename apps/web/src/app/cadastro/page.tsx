@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UserPlus, Eye, EyeOff } from 'lucide-react';
 import { Logo } from '@/components/logo';
+import { getDefaultRoute } from '@/lib/access-control';
 import { useAuthStore } from '@/stores/auth-store';
 
 export default function RegisterPage() {
@@ -28,8 +29,8 @@ export default function RegisterPage() {
     }
 
     try {
-      await register({ name: form.name, email: form.email, password: form.password, cpf: form.cpf, phone: form.phone });
-      router.push('/dashboard');
+      const user = await register({ name: form.name, email: form.email, password: form.password, cpf: form.cpf, phone: form.phone });
+      router.push(getDefaultRoute(user.role));
     } catch (err: any) {
       setError(err.message || 'Erro ao criar conta');
     }

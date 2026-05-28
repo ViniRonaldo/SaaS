@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Building2, MapPin, Phone, Clock } from 'lucide-react';
+import { healthUnitService } from '@/services/health-unit.service';
 
 const typeBadge: Record<string, string> = { UBS: 'bg-teal-100 text-teal-700', UPA: 'bg-red-100 text-red-700', PSF: 'bg-blue-100 text-blue-700', CAPS: 'bg-purple-100 text-purple-700' };
 
@@ -10,7 +11,7 @@ export default function UnidadesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(()=>{
-    fetch('/api/v1/health-units').then(r=>r.json()).then(d=>setUnits(d.data||[])).catch(()=>{}).finally(()=>setLoading(false));
+    healthUnitService.getAll().then(d=>setUnits(d.data||[])).catch(()=>{}).finally(()=>setLoading(false));
   },[]);
 
   if(loading) return <div className="flex items-center justify-center h-64"><div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-600 border-t-transparent"/></div>;

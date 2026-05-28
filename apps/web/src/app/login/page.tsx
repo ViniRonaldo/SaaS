@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { Logo } from '@/components/logo';
+import { canAccessAdminArea, canAccessUserArea, getDefaultRoute } from '@/lib/access-control';
 import { useAuthStore } from '@/stores/auth-store';
 
 export default function LoginPage() {
@@ -13,14 +14,24 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [redirect, setRedirect] = useState<string | null>(null);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    setRedirect(new URLSearchParams(window.location.search).get('redirect'));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     try {
-      await login(email, password);
-      router.push('/dashboard');
+      const user = await login(email, password);
+      const canUseRedirect =
+        !!redirect &&
+        ((redirect.startsWith('/dashboard') && canAccessAdminArea(user.role)) ||
+          (redirect.startsWith('/usuario') && canAccessUserArea(user.role)));
+
+      router.push(canUseRedirect ? redirect : getDefaultRoute(user.role));
     } catch (err: any) {
       setError(err.message || 'Erro ao fazer login');
     }

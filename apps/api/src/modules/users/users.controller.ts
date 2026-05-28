@@ -1,9 +1,11 @@
-import { Controller, Get, Patch, Delete, Param, Query, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -14,7 +16,7 @@ export class UsersController {
 
   @Get()
   @Roles('ADMIN', 'PREFECTURE')
-  @ApiOperation({ summary: 'Listar usuários' })
+  @ApiOperation({ summary: 'Listar usuarios' })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'perPage', required: false })
   @ApiQuery({ name: 'search', required: false })
@@ -28,22 +30,36 @@ export class UsersController {
     return this.usersService.findAll({ page, perPage, search, role });
   }
 
+  @Post()
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Criar usuario' })
+  create(@Body() data: CreateUserDto) {
+    return this.usersService.create(data);
+  }
+
   @Get(':id')
-  @ApiOperation({ summary: 'Buscar usuário por ID' })
+  @ApiOperation({ summary: 'Buscar usuario por ID' })
   findById(@Param('id') id: string) {
     return this.usersService.findById(id);
   }
 
   @Patch(':id')
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Atualizar usuário' })
-  update(@Param('id') id: string, @Body() data: any) {
+  @ApiOperation({ summary: 'Atualizar usuario' })
+  update(@Param('id') id: string, @Body() data: UpdateUserDto) {
     return this.usersService.update(id, data);
+  }
+
+  @Patch(':id/activate')
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Ativar usuario' })
+  activate(@Param('id') id: string) {
+    return this.usersService.activate(id);
   }
 
   @Delete(':id')
   @Roles('ADMIN')
-  @ApiOperation({ summary: 'Desativar usuário' })
+  @ApiOperation({ summary: 'Desativar usuario' })
   deactivate(@Param('id') id: string) {
     return this.usersService.deactivate(id);
   }

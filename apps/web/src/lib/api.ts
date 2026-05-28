@@ -8,13 +8,14 @@ class ApiClient {
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const token = this.accessToken ?? this.getPersistedToken();
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...options.headers,
     };
 
-    if (this.accessToken) {
-      (headers as Record<string, string>)['Authorization'] = `Bearer ${this.accessToken}`;
+    if (token) {
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
     }
 
     const response = await fetch(`${API_URL}${endpoint}`, {
@@ -29,6 +30,27 @@ class ApiClient {
 
     if (response.status === 204) return {} as T;
     return response.json();
+  }
+
+  private getPersistedToken() {
+    if (typeof window === 'undefined') return null;
+
+    const cookieToken = document.cookie
+      .split('; ')
+      .find((row) => row.startsWith('filasaude-token='))
+      ?.split('=')[1];
+
+    if (cookieToken) return decodeURIComponent(cookieToken);
+
+    try {
+      const raw = window.localStorage.getItem('filasaude-auth');
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw) as { state?: { accessToken?: string } };
+      return parsed.state?.accessToken ?? null;
+    } catch {
+      return null;
+    }
   }
 
   get<T>(endpoint: string) {
